@@ -111,6 +111,10 @@ if(!window.AXConfig){
 			headTdHeight: 30,
 			keyResult: "result",
 			keyList: "list",
+			//pms - start
+			pagingSizeShow: false,
+			pagingSizeCnt: [10,30,50,100,300,500],
+			//pms - end
 			emptyListMSG: "empty of list",
 			listCountMSG: "<b>{listCount}</b> count(s)",
 			pageCountMSG: "page(s)"
@@ -13703,6 +13707,9 @@ var AXGrid = Class.create(AXJ, {
         ol.push("			<div class=\"AXgridPageNumber\"><select id=\"" + cfg.targetID + "_AX_gridPageNo\" class=\"AXgridPageNo\"><option value=\"\">&nbsp;&nbsp;</option></select></div>");
         ol.push("			<div class=\"AXgridPageNumberCount\" id=\"" + cfg.targetID + "_AX_gridPageCount\">/ ...</div>");
         ol.push("			<a class=\"AXgridPagingNext\">NEXT</a>");
+        // pms - start
+        ol.push("			<div class=\"AXgridPageNumber\"><select id=\"" + cfg.targetID + "_AX_gridPageSizeNo\" class=\"AXgridPageNo\"></select></div>");
+        // pms - end
         ol.push("		</div>");
         ol.push("		<div class=\"AXgridStatus\" id=\"" + cfg.targetID + "_AX_gridStatus\">");
         ol.push("		" + cfg.listCountMSG.replace("{listCount}", "0"));
@@ -21347,11 +21354,19 @@ var AXGrid = Class.create(AXJ, {
         var pageNos = axf.getId(cfg.targetID + "_AX_gridPageNo");
         var pgCount = this.page.pageCount.number();
         var pageNo = this.page.pageNo.number();
-
+        
+				// pms - start
+				cfg.page.pagingSizeCnt = cfg.page.pagingSizeCnt || AXConfig.AXGrid.pagingSizeCnt;
+				cfg.page.pagingSizeShow = cfg.page.pagingSizeShow || AXConfig.AXGrid.pagingSizeShow;
+				// pms - end
+				
         if (pgCount === 0) {
             var po = [];
             po.push("<option value=\"\">..</option>");
             axdom("#" + cfg.targetID + "_AX_gridPageNo").html(po.join(''));
+            // pms - start
+						axdom("#" + cfg.targetID + "_AX_gridPageSizeNo").html(po.join(''));
+						// pms - end
         }
         else {
             axdom("#" + cfg.targetID + "_AX_gridPageNo").html("");
@@ -21376,6 +21391,22 @@ var AXGrid = Class.create(AXJ, {
                     oi++;
                 }
             }
+            // pms - start
+						axdom("#" + cfg.targetID + "_AX_gridPageSizeNo").html("");
+						var mySelect1 = axf.getId(cfg.targetID + "_AX_gridPageSizeNo");
+						var pageListArr = cfg.page.pagingSizeCnt;
+						
+						if(!isPushed){
+							pageListArr.push(this.page.listCount.number()); // pms ver 1.3
+							isPushed = true;
+						}
+						
+						for (var p = 1; p < pageListArr.length+1; p++) {
+							mySelect1.options[p] = new Option(pageListArr[p-1], pageListArr[p-1]);
+							if (this.page.pageSize == pageListArr[p-1]) mySelect1.options[p].selected = true;
+						}
+						if(!cfg.page.pagingSizeShow) axdom("#" + cfg.targetID + "_AX_gridPageSizeNo").hide();
+						// pms - end
         }
         axdom("#" + cfg.targetID + "_AX_gridPageCount").html("/ " + pgCount.money() + " " + cfg.pageCountMSG);
 
@@ -21392,6 +21423,13 @@ var AXGrid = Class.create(AXJ, {
                     onPageChange();
                 }
             });
+            // pms - start
+						axdom("#" + cfg.targetID + "_AX_gridPageSizeNo").bindSelect({
+							onChange: function (arg) {
+								onPageChange();
+							}
+						});
+						// pms - end
         }
     },
     /**
@@ -21443,15 +21481,29 @@ var AXGrid = Class.create(AXJ, {
         var pgCount, pageNo, npageNo;
         pgCount = this.page.pageCount.number();
         pageNo = this.page.pageNo.number();
-
+				// pms - start
+				var pageSize, npageSize;
+				pageSize = this.page.pageSize.number();
+				// pms - end
+				
         if (cfg.viewMode == "mobile") {
             npageNo = (e) ? e.target.value : axdom("#" + cfg.targetID + "_AX_gridToolTopPageNo").val();
         }
         else {
             npageNo = axdom("#" + cfg.targetID + "_AX_gridPageNo").val();
+            // pms - start
+						npageSize = axdom("#" + cfg.targetID + "_AX_gridPageSizeNo").val();
+						// pms - end
         }
         this.page.pageNo = npageNo;
-
+				
+				// pms - start
+				if(pageSize != npageSize) {
+					this.page.pageNo = 1;
+					this.page.pageSize = npageSize;
+				}
+				// pms - end
+				
         if (this.page.onchange) {
             this.page.onchange.call(this.page, npageNo);
         }
@@ -32133,7 +32185,9 @@ var AXModelControl = Class.create(AXJ, {
 		if(cfg.collectSelector != ""){
 			finderCSS = cfg.collectSelector;
 		}else{
-			finderCSS = "input[type=text], input[type=hidden], input[type=radio], input[type=checkbox], select, textarea";
+			//pms - start
+			finderCSS = "input[type=text], input[type=password], input[type=hidden], input[type=radio], input[type=checkbox], select, textarea";
+			//pms - end
 		}
 		var _this = this;
 		var getParentSubModel = function(ele){
